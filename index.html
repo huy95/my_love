@@ -528,7 +528,7 @@ this.time.delta * this.time.frequency * (1 + this.data * 0.2);
 
 if (this.model) {
 
-this.model.rotation.y -= 0.0005 * this.time.delta * (1 + this.data);
+this.model.rotation.y = 0;
 
 }
 
@@ -694,7 +694,7 @@ async addModel() {
 
   this.scene.add(this.model);
 }
-// Tạo chữ “ghép ảnh hồng nhỏ”
+
 addTitleTiles() {
   const LINES = [
     "Chúc mừng ngày 20/10, Chúc Hoàng Linh của anh luôn xinh đẹp, vui vẻ",
