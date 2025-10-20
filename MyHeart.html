@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+
+<meta charset="UTF-8">
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>I Love You</title>
+
+<style>
+
+*{
+
+margin: 0;
+
+padding: 0;
+
+box-sizing: border-box;
+
+}
+
+html,
+
+body {
+
+overflow: hidden;
+
+background-color: #000 !important;
+
+}
+
+body {
+
+-webkit-font-soothing: antialiased;
+
+}
+
+.webgl {
+
+position: fixed;
+
+width: 100vw;
+
+height: 100vw;
+
+top: 0;
+
+left: 0;
+
+outline: none;
+
+}
+
+h1{
+
+position: absolute;
+
+top: 10vh;
+
+left: 2.5rem;
+
+right: 1rem;
+
+text-align: center;
+
+font-size: max(1rem, 3vh);
+
+}
+
+button {
+
+position: absolute;
+
+left: 0;
+
+top: 0;
+
+bottom: 0;
+
+height: 12vh;
+
+width: 12vh;
+
+transform: translateY(2vh);
+
+right: 0;
+
+margin: auto;
+
+-webkit-appearance: none;
+
+background: transparent;
+
+color: inherit;
+
+border: none;
+
+cursor: pointer;
+
+}
+
+svg{
+
+width: 3.5vh;
+
+}
+
+.title {
+    z-index: 1;
+    color: white;
+    position: absolute;
+    top: 10vh;
+
+    left: 2.5rem;
+
+    right: 1rem;
+
+    text-align: center;
+
+    font-size: max(1rem, 3vh);
+}
+
+</style>
+
+<script>
+
+window.console = window.console || function(t) {};
+
+</script>
+
+<script>
+
+if (document.location.search.match(/type=embed/gi)) {
+
+window.parent.postMessage("resize", "*");
+
+}
+
+</script>
+
+</head>
+
+<body translate="no">
+
+    <!-- <div class="title">
+        <div>Chúc mừng ngày 20/10, Hoàng Linh xinh đẹp của anh</div>
+        <div>Chúc em luôn xinh đẹp, dịu dàng và hạnh phúc như chính cách em làm cho cuộc sống của anh trở nên tuyệt vời hơn</div>
+    </div> -->
+
+<canvas class="webgl" data-engine="three.js r135" width="682" height="157" style="width: 682px; height: 157px;"></canvas>
+
+<button id="play-music" type="button" aria-label="Play music" style="opacity: 1;"><svg fill="currentColor" viewBox="0 0 512 512" width="100" title="music">
+
+<!-- <path d="M470.38 1.51L150.41 96A32 32 0 0 0 128 126.51v261.41A139 139 0 0 0 96 384c-53 0-96 28.66-96 64s43 64 96 64 96-28.66 96-64V214.32l256-75v184.61a138.4 138.4 0 0 0-32-3.93c-53 0-96 28.66-96 64s43 64 96 64 96-28.65 96-64V32a32 32 0 0 0-41.62-30.49z" /> -->
+
+</svg></button>
+
+<script type="x-shader/x-vertex" id="vertexShader">
+
+#define M_PI 3.1415926535897932384626433832795
+
+uniform float uTime;
+
+uniform float uSize;
+
+attribute float aScale;
+
+attribute vec3 aColor;
+
+attribute float random;
+
+attribute float random1;
+
+attribute float aSpeed;
+
+varying vec3 vColor;
+
+varying vec2 vUv;
+
+void main() {
+
+float sign = 2.0* (step(random, 0.5) -.5);
+
+float t = sign*mod(-uTime * aSpeed* 0.005 + 10.0*aSpeed*aSpeed, M_PI);
+
+float a = pow(t, 2.0) * pow((t - sign * M_PI), 2.0);
+
+float radius = 0.14;
+
+vec3 myOffset =
+
+vec3(t, 1.0, 0.0);
+
+myOffset = vec3(radius *16.0 * pow(sin(t), 2.0) * sin(t), radius * (13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)), .15*(a*(random1 - .5))*sin(abs(10.0*(sin(.2*uTime + .2*random)))*t));
+
+vec3 displacedPosition = myOffset;
+
+vec4 modelPosition = modelMatrix * vec4(displacedPosition.xyz, 1.0);
+
+vec4 viewPosition = viewMatrix * modelPosition;
+
+viewPosition.xyz += position * aScale * uSize * pow(a, .5) * .5;
+
+gl_Position = projectionMatrix * viewPosition;
+
+vColor = aColor;
+
+vUv = uv;
+
+}
+
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentShader">
+  uniform sampler2D uTex;
+  varying vec3 vColor; varying vec2 vUv;
+  // fit image into square UV (cover), with subtle round-corner mask
+  vec2 coverUV(vec2 uv, vec2 texSize){
+    float texAspect = texSize.x / texSize.y;
+    float quadAspect = 1.0; // plane is square
+    vec2 result = uv;
+    if (texAspect > quadAspect) {
+      // wider image -> scale x
+      float scale = texAspect / quadAspect;
+      result.x = (uv.x - 0.5) * scale + 0.5;
+    } else {
+      // taller image -> scale y
+      float scale = quadAspect / texAspect;
+      result.y = (uv.y - 0.5) * scale + 0.5;
+    }
+    return result;
+  }
+  void main() {
+    vec2 uv = vUv;
+    // approximate texture size (can't query in WebGL1) – assume landscape ~ 3:2
+    vec2 texSize = vec2(3.0, 2.0);
+    uv = coverUV(uv, texSize);
+    // soft round mask so tiles look like mini-photos
+    float dist = distance(uv, vec2(0.5));
+    float vign = smoothstep(0.75, 0.95, 1.0 - dist);
+    vec3 tex = texture2D(uTex, clamp(uv, 0.0, 1.0)).rgb;
+    gl_FragColor = vec4(tex * (0.85 + 0.15*vign), 1.0);
+  }
+
+</script>
+
+<script type="x-shader/x-vertex" id="vertexShader1">
+
+#define M_PI 3.1415926535897932384626433832795
+
+uniform float uTime;
+
+uniform float uSize;
+
+attribute float aScale;
+
+attribute vec3 aColor;
+
+attribute float phi;
+
+attribute float random;
+
+attribute float random1;
+
+varying vec3 vColor;
+
+varying vec2 vUv;
+
+void main() {
+
+float t = 0.01 * uTime + 12.0;
+
+float angle = phi;
+
+t = mod((-uTime + 100.0) * 0.06* random1 + random *2.0 * M_PI , 2.0 * M_PI);
+
+vec3 myOffset = vec3(5.85*cos(angle * (t )), 2.0*(t - M_PI), 3.0*sin(angle * (t )/t));
+
+vec4 modelPosition = modelMatrix * vec4(myOffset, 1.0);
+
+vec4 viewPosition = viewMatrix * modelPosition;
+
+viewPosition.xyz += position * aScale * uSize;
+
+gl_Position = projectionMatrix * viewPosition;
+
+vColor = aColor;
+
+vUv = uv;
+
+}
+
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentShader1">
+
+uniform sampler2D uTex;
+
+varying vec3 vColor;
+
+varying vec2 vUv;
+
+void main() {
+
+vec2 uv = vUv;
+
+vec3 color = vColor;
+
+float strength = distance(uv, vec2(0.5, .65));
+
+strength *= 2.0;
+
+strength = 1.0 - strength;
+
+vec3 texture = texture2D(uTex, uv).rgb;
+
+gl_FragColor = vec4(texture * color * (strength + .3), 1.);
+
+}
+
+</script>
+
+<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-2c7831bb44f98c1391d6a4ffda0e1fd302503391ca806e7fcc7b9b87197aec26.js"></script>
+
+<script id="rendered-js" type="module">
+
+/* Poly Heart model by Quaternius [CC0] (https://creativecommons.org/publicdomain/zero/1.0/) via Poly Pizza (https://poly.pizza/m/1yCRUwFnwX)
+
+*/
+
+import * as THREE from "https://cdn.skypack.dev/three@0.135.0";
+
+import { gsap } from "https://cdn.skypack.dev/gsap@3.8.0";
+
+import { GLTFLoader } from "https://cdn.skypack.dev/three@0.135.0/examples/jsm/loaders/GLTFLoader";
+const PHOTO_URL = "https://res.cloudinary.com/da1lqfxbp/image/upload/v1760928899/image_vghobi.jpg";
+
+class World {
+
+constructor({
+
+canvas,
+
+width,
+
+height,
+
+cameraPosition,
+
+fieldOfView = 75,
+
+nearPlane = 0.1,
+
+farPlane = 100 })
+
+{
+
+this.parameters = {
+
+count: 1500,
+
+max: 12.5 * Math.PI,
+
+a: 2,
+
+c: 4.5 };
+
+this.textureLoader = new THREE.TextureLoader();
+
+this.scene = new THREE.Scene();
+
+this.scene.background = new THREE.Color(0x16000a);
+
+this.clock = new THREE.Clock();
+
+this.data = 0;
+
+this.time = { current: 0, t0: 0, t1: 0, t: 0, frequency: 0.0005 };
+
+this.angle = { x: 0, z: 0 };
+
+this.width = width || window.innerWidth;
+
+this.height = height || window.innerHeight;
+
+this.aspectRatio = this.width / this.height;
+
+this.fieldOfView = fieldOfView;
+
+this.camera = new THREE.PerspectiveCamera(
+
+fieldOfView,
+
+this.aspectRatio,
+
+nearPlane,
+
+farPlane);
+
+this.camera.position.set(
+
+cameraPosition.x,
+
+cameraPosition.y,
+
+cameraPosition.z);
+
+this.scene.add(this.camera);
+
+this.renderer = new THREE.WebGLRenderer({
+
+canvas,
+
+antialias: true });
+
+this.pixelRatio = Math.min(window.devicePixelRatio, 2);
+
+this.renderer.setPixelRatio(this.pixelRatio);
+
+this.renderer.setSize(this.width, this.height);
+
+this.timer = 0;
+
+this.addToScene();
+
+this.addButton();
+
+this.render();
+
+this.listenToResize();
+
+this.listenToMouseMove();
+
+}
+
+start() {}
+
+render() {
+
+this.renderer.render(this.scene, this.camera);
+
+this.composer && this.composer.render();
+
+}
+
+loop() {
+
+this.time.elapsed = this.clock.getElapsedTime();
+
+this.time.delta = Math.min(
+
+60,
+
+(this.time.current - this.time.elapsed) * 1000);
+
+if (this.analyser && this.isRunning) {
+
+this.time.t = this.time.elapsed - this.time.t0 + this.time.t1;
+
+this.data = this.analyser.getAverageFrequency();
+
+this.data *= this.data / 2000;
+
+this.angle.x += this.time.delta * 0.001 * 0.63;
+
+this.angle.z += this.time.delta * 0.001 * 0.39;
+
+const justFinished = this.isRunning && !this.sound.isPlaying;
+
+if (justFinished) {
+
+this.time.t1 = this.time.t;
+
+this.audioBtn.disabled = false;
+
+this.isRunning = false;
+
+const tl = gsap.timeline();
+
+this.angle.x = 0;
+
+this.angle.z = 0;
+
+tl.to(this.camera.position, {
+
+x: 0,
+
+z: 4.5,
+
+duration: 4,
+
+ease: "expo.in" });
+
+tl.to(this.audioBtn, {
+
+opacity: () => 1,
+
+duration: 1,
+
+ease: "power1.out" });
+
+} else {
+
+this.camera.position.x = Math.sin(this.angle.x) * this.parameters.a;
+
+this.camera.position.z = Math.min(
+
+Math.max(Math.cos(this.angle.z) * this.parameters.c, 1.75),
+
+6.5);
+
+}
+
+}
+
+this.camera.lookAt(this.scene.position);
+
+if (this.heartMaterial) {
+
+this.heartMaterial.uniforms.uTime.value +=
+
+this.time.delta * this.time.frequency * (1 + this.data * 0.2);
+
+}
+
+if (this.model) {
+
+this.model.rotation.y -= 0.0005 * this.time.delta * (1 + this.data);
+
+}
+
+if (this.snowMaterial) {
+
+this.snowMaterial.uniforms.uTime.value +=
+
+this.time.delta * 0.0004 * (1 + this.data);
+
+}
+
+this.render();
+
+this.time.current = this.time.elapsed;
+
+requestAnimationFrame(this.loop.bind(this));
+
+}
+
+listenToResize() {
+
+window.addEventListener("resize", () => {
+
+// Update sizes
+
+this.width = window.innerWidth;
+
+this.height = window.innerHeight;
+
+// Update camera
+
+this.camera.aspect = this.width / this.height;
+
+this.camera.updateProjectionMatrix();
+
+this.renderer.setSize(this.width, this.height);
+
+});
+
+}
+
+listenToMouseMove() {
+
+window.addEventListener("mousemove", e => {
+
+const x = e.clientX;
+
+const y = e.clientY;
+
+gsap.to(this.camera.position, {
+
+x: gsap.utils.mapRange(0, window.innerWidth, 0.2, -0.2, x),
+
+y: gsap.utils.mapRange(0, window.innerHeight, 0.2, -0.2, -y) });
+
+});
+
+}
+
+addHeart() {
+       this.heartMaterial = new THREE.ShaderMaterial({
+        fragmentShader: document.getElementById("fragmentShader").textContent,
+        vertexShader: document.getElementById("vertexShader").textContent,
+        uniforms: {
+          uTime: { value: 0 }, uSize: { value: 0.2 },
+          uTex: { value: new THREE.TextureLoader().load(PHOTO_URL) }
+        },
+        depthWrite: false, blending: THREE.AdditiveBlending, transparent: true
+      });
+      const count = this.parameters.count;
+      const scales = new Float32Array(count * 1);
+      const colors = new Float32Array(count * 3);
+      const speeds = new Float32Array(count);
+      const randoms = new Float32Array(count);
+      const randoms1 = new Float32Array(count);
+      // keep color = white to avoid tinting the photo
+      const squareGeometry = new THREE.PlaneGeometry(1, 1);
+      this.instancedGeometry = new THREE.InstancedBufferGeometry();
+      Object.keys(squareGeometry.attributes).forEach(attr => { this.instancedGeometry.attributes[attr] = squareGeometry.attributes[attr]; });
+      this.instancedGeometry.index = squareGeometry.index;
+      this.instancedGeometry.maxInstancedCount = count;
+      for (let i = 0; i < count; i++) {
+        const i3 = 3 * i;
+        randoms[i] = Math.random(); randoms1[i] = Math.random();
+        // Smaller, more uniform tiles for mosaic feel
+        scales[i] = 0.18 + Math.random() * 0.18; // 0.18–0.36
+        colors[i3 + 0] = 1.0; colors[i3 + 1] = 1.0; colors[i3 + 2] = 1.0;
+        speeds[i] = Math.random() * this.parameters.max;
+      }
+      this.instancedGeometry.setAttribute("random",  new THREE.InstancedBufferAttribute(randoms, 1, false));
+      this.instancedGeometry.setAttribute("random1", new THREE.InstancedBufferAttribute(randoms1, 1, false));
+      this.instancedGeometry.setAttribute("aScale",  new THREE.InstancedBufferAttribute(scales, 1, false));
+      this.instancedGeometry.setAttribute("aSpeed",  new THREE.InstancedBufferAttribute(speeds, 1, false));
+      this.instancedGeometry.setAttribute("aColor",  new THREE.InstancedBufferAttribute(colors, 3, false));
+      this.heart = new THREE.Mesh(this.instancedGeometry, this.heartMaterial);
+      this.scene.add(this.heart);
+    }
+   
+addToScene() {
+
+this.addModel();
+
+this.addHeart();
+this.addTitleTiles();
+this.addSnow();
+
+}
+
+
+async addModel() {
+  const texture = new THREE.TextureLoader().load(PHOTO_URL, (t) => {
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+  });
+
+  const fragmentShader = `
+    #define M_PI 3.1415926535897932384626433832795
+    uniform sampler2D uTex;
+    varying vec2 vUv;
+    float heartShape(vec2 uv) {
+      uv = uv * 2.0 - 1.0;
+      float x = uv.x;
+      float y = uv.y;
+      float a = x*x + y*y - 1.0;
+      return a*a*a - x*x*y*y*y;
+    }
+    void main() {
+      vec2 uv = vUv;
+      vec3 tex = texture2D(uTex, uv).rgb;
+      float h = heartShape(uv * 1.1);
+      if (h > 0.0) discard;
+      gl_FragColor = vec4(tex, 1.0);
+    }
+  `;
+
+  const vertexShader = `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms: { uTex: { value: texture } },
+    transparent: true,
+    side: THREE.DoubleSide, 
+  });
+
+  // 💡 Giảm kích thước tổng thể của trái tim
+  const geometry = new THREE.PlaneGeometry(2.2, 2.2); // trước là 3.5, giờ nhỏ hơn
+
+  this.model = new THREE.Mesh(geometry, material);
+
+  // Hiệu ứng phóng to nhẹ, nhưng dừng ở 0.7 (bé hơn trước)
+  gsap.fromTo(
+    this.model.scale,
+    { x: 0.01, y: 0.01, z: 0.01 },
+    { x: 0.7, y: 0.7, z: 0.7, duration: 1.2, ease: "elastic.out(1, 0.5)" }
+  );
+
+  this.scene.add(this.model);
+}
+// Tạo chữ “ghép ảnh hồng nhỏ”
+addTitleTiles() {
+  const LINES = [
+    "Chúc mừng ngày 20/10, Chúc Hoàng Linh của anh luôn xinh đẹp, vui vẻ",
+    "Luôn có nhiều niềm vui trong cuộc sống !!!!!"
+  ];
+
+  // Tạo canvas để vẽ chữ
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const W = 2000, H = 400; // vừa phải, đẹp trên cả điện thoại
+  canvas.width = W;
+  canvas.height = H;
+
+  // Nền trong suốt, chữ trắng, mịn
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 40px Arial, Helvetica, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(255,150,200,0.4)";
+  ctx.shadowBlur = 15;
+
+  const y0 = H * 0.3, lh = 120;
+  LINES.forEach((t, i) => ctx.fillText(t, W / 2, y0 + i * lh));
+
+  // Tạo texture từ canvas
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+
+  // Tạo vật liệu hiển thị chữ
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    opacity: 1.0,
+    side: THREE.DoubleSide
+  });
+
+  // Tạo mặt phẳng hiển thị chữ (như tấm bảng chữ)
+  const aspect = W / H;
+  const geometry = new THREE.PlaneGeometry(5.5, 5.5 / aspect);
+  this.titleMesh = new THREE.Mesh(geometry, material);
+
+  // Đặt chữ hơi cao lên để không đè vào tim
+  this.titleMesh.position.set(0, 1.9, 0);
+  this.scene.add(this.titleMesh);
+}
+
+
+addButton() {
+
+this.audioBtn = document.querySelector("button");
+
+this.audioBtn.addEventListener("click", () => {
+
+this.audioBtn.disabled = true;
+
+if (this.analyser) {
+
+this.sound.play();
+
+this.time.t0 = this.time.elapsed;
+
+this.data = 0;
+
+this.isRunning = true;
+
+gsap.to(this.audioBtn, {
+
+opacity: 0,
+
+duration: 1,
+
+ease: "power1.out" });
+
+} else {
+
+this.loadMusic().then(() => {
+
+console.log("music loaded");
+
+});
+
+}
+
+});
+
+}
+
+loadObj(path) {
+
+const loader = new GLTFLoader();
+
+return new Promise(resolve => {
+
+loader.load(
+
+path,
+
+response => {
+
+resolve(response.scene.children[0]);
+
+},
+
+xhr => {},
+
+err => {
+
+console.log(err);
+
+});
+
+});
+
+}
+
+loadMusic() {
+
+return new Promise(resolve => {
+
+const listener = new THREE.AudioListener();
+
+this.camera.add(listener);
+
+// create a global audio source
+
+this.sound = new THREE.Audio(listener);
+
+const audioLoader = new THREE.AudioLoader();
+
+audioLoader.load(
+
+"https://res.cloudinary.com/da1lqfxbp/video/upload/v1760928164/To_The_Moon_yd0sus.mp3",
+
+buffer => {
+
+this.sound.setBuffer(buffer);
+
+this.sound.setLoop(false);
+
+this.sound.setVolume(0.5);
+
+this.sound.play();
+
+this.analyser = new THREE.AudioAnalyser(this.sound, 32);
+
+// get the average frequency of the sound
+
+const data = this.analyser.getAverageFrequency();
+
+this.isRunning = true;
+
+this.t0 = this.time.elapsed;
+
+resolve(data);
+
+},
+
+progress => {
+
+gsap.to(this.audioBtn, {
+
+opacity: () => 1 - progress.loaded / progress.total,
+
+duration: 1,
+
+ease: "power1.out" });
+
+},
+
+error => {
+
+console.log(error);
+
+});
+
+});
+
+}
+
+addSnow() {
+
+this.snowMaterial = new THREE.ShaderMaterial({
+
+fragmentShader: document.getElementById("fragmentShader1").textContent,
+
+vertexShader: document.getElementById("vertexShader1").textContent,
+
+uniforms: {
+
+uTime: { value: 0 },
+
+uSize: { value: 0.3 },
+
+uTex: {
+
+value: new THREE.TextureLoader().load(
+
+PHOTO_URL) } },
+
+depthWrite: false,
+
+blending: THREE.AdditiveBlending,
+
+transparent: true });
+
+const count = 550;
+
+const scales = new Float32Array(count * 1);
+
+const colors = new Float32Array(count * 3);
+
+const phis = new Float32Array(count);
+
+const randoms = new Float32Array(count);
+
+const randoms1 = new Float32Array(count);
+
+const colorChoices = ["pink"];
+
+const squareGeometry = new THREE.PlaneGeometry(1, 1);
+
+this.instancedGeometry = new THREE.InstancedBufferGeometry();
+
+Object.keys(squareGeometry.attributes).forEach(attr => {
+
+this.instancedGeometry.attributes[attr] = squareGeometry.attributes[attr];
+
+});
+
+this.instancedGeometry.index = squareGeometry.index;
+
+this.instancedGeometry.maxInstancedCount = count;
+
+for (let i = 0; i < count; i++) {
+
+const phi = (Math.random() - 0.5) * 10;
+
+const i3 = 3 * i;
+
+phis[i] = phi;
+
+randoms[i] = Math.random();
+
+randoms1[i] = Math.random();
+
+scales[i] = Math.random() * 0.35;
+
+const colorIndex = Math.floor(Math.random() * colorChoices.length);
+
+const color = new THREE.Color(colorChoices[colorIndex]);
+
+colors[i3 + 0] = color.r;
+
+colors[i3 + 1] = color.g;
+
+colors[i3 + 2] = color.b;
+
+}
+
+this.instancedGeometry.setAttribute(
+
+"phi",
+
+new THREE.InstancedBufferAttribute(phis, 1, false));
+
+this.instancedGeometry.setAttribute(
+
+"random",
+
+new THREE.InstancedBufferAttribute(randoms, 1, false));
+
+this.instancedGeometry.setAttribute(
+
+"random1",
+
+new THREE.InstancedBufferAttribute(randoms1, 1, false));
+
+this.instancedGeometry.setAttribute(
+
+"aScale",
+
+new THREE.InstancedBufferAttribute(scales, 1, false));
+
+this.instancedGeometry.setAttribute(
+
+"aColor",
+
+new THREE.InstancedBufferAttribute(colors, 3, false));
+
+this.snow = new THREE.Mesh(this.instancedGeometry, this.snowMaterial);
+
+this.scene.add(this.snow);
+
+}}
+
+const world = new World({
+
+canvas: document.querySelector("canvas.webgl"),
+
+cameraPosition: { x: 0, y: 0, z: 4.5 } });
+
+world.loop();
+
+//# sourceURL=pen.js
+
+</script>
+
+</body>
+
+</html>
+
